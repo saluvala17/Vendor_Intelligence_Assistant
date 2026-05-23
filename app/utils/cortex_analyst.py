@@ -118,11 +118,16 @@ def ask_vendor_analyst(
             messages=messages,
         )
 
-        tool_calls_made = False
+        # Gather all tool_use blocks from this single response
+        tool_uses = [b for b in response.content if b.type == "tool_use"]
 
-        for block in response.content:
-            if block.type == "tool_use":
-                tool_calls_made = True
+        if tool_uses:
+            # Append the full assistant message exactly once
+            messages.append({"role": "assistant", "content": response.content})
+
+            # Execute every tool call and collect all results
+            tool_results = []
+            for block in tool_uses:
                 last_sql = block.input.get("sql", "")
                 yield {"type": "sql", "content": last_sql}
 
@@ -132,25 +137,18 @@ def ask_vendor_analyst(
                 if not df.empty:
                     yield {"type": "data", "content": df}
 
-                messages.append({"role": "assistant", "content": response.content})
-                messages.append({
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": block.id,
-                            "content": result_json,
-                        }
-                    ],
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": result_json,
                 })
 
-        if response.stop_reason == "end_turn" or not tool_calls_made:
-            for block in response.content:
-                if hasattr(block, "text") and block.text:
-                    yield {"type": "text", "content": block.text}
-            break
-
-        if response.stop_reason == "tool_use":
+            # All tool results go into ONE user message
+            messages.append({"role": "user", "content": tool_results})
             continue
 
+        # No tool calls — Claude is done, emit the text response
+        for block in response.content:
+            if hasattr(block, "text") and block.text:
+                yield {"type": "text", "content": block.text}
         break
