@@ -1,0 +1,194 @@
+semantic_models:
+  - name: vendor_360
+    description: >
+      360-degree vendor intelligence model. Combines vendor master data with
+      invoice aggregates and risk scoring. This is the primary semantic layer
+      consumed by the AI chatbot and executive dashboards.
+    model: ref('mart_vendor_360')
+
+    entities:
+      - name: vendor
+        type: primary
+        expr: VENDOR_ID
+
+    dimensions:
+      - name: vendor_name
+        type: categorical
+        expr: VENDOR_NAME
+        description: Legal vendor name as registered.
+
+      - name: vendor_type
+        type: categorical
+        expr: VENDOR_TYPE
+        description: Category of vendor services (IT, Facilities, Logistics, etc.).
+
+      - name: risk_rating
+        type: categorical
+        expr: RISK_RATING
+        description: Vendor risk classification — LOW, MEDIUM, or HIGH.
+
+      - name: payment_terms
+        type: categorical
+        expr: PAYMENT_TERMS
+        description: Agreed payment terms — NET15, NET30, NET45, NET60.
+
+      - name: account_manager
+        type: categorical
+        expr: ACCOUNT_MANAGER
+        description: Internal employee managing this vendor relationship.
+
+      - name: vendor_status
+        type: categorical
+        expr: STATUS
+        description: Current vendor status — ACTIVE or INACTIVE.
+
+      - name: country
+        type: categorical
+        expr: COUNTRY
+        description: Country where the vendor is registered.
+
+      - name: preferred_currency
+        type: categorical
+        expr: PREFERRED_CURRENCY
+        description: Vendor preferred payment currency.
+
+      - name: risk_score_category
+        type: categorical
+        expr: RISK_SCORE_CATEGORY
+        description: Composite risk category — CRITICAL, WATCH, or STABLE.
+
+      - name: contract_end_date
+        type: time
+        type_params:
+          time_granularity: day
+        expr: CONTRACT_END
+        description: Date the vendor contract expires.
+
+      - name: is_expiring_soon
+        type: categorical
+        expr: IS_EXPIRING_SOON
+        description: TRUE if contract expires within 90 days.
+
+      - name: has_overdue_invoices
+        type: categorical
+        expr: HAS_OVERDUE_INVOICES
+        description: TRUE if the vendor has at least one OVERDUE invoice.
+
+    measures:
+      - name: total_invoice_amount
+        description: Sum of all invoice amounts for vendors matching the filter.
+        agg: sum
+        expr: TOTAL_INVOICE_AMOUNT
+
+      - name: total_outstanding_amount
+        description: Total outstanding (unpaid) balance across vendors.
+        agg: sum
+        expr: TOTAL_OUTSTANDING_AMOUNT
+
+      - name: total_paid_amount
+        description: Total amount paid to vendors.
+        agg: sum
+        expr: TOTAL_PAID_AMOUNT
+
+      - name: invoice_count
+        description: Total number of invoices.
+        agg: sum
+        expr: INVOICE_COUNT
+
+      - name: vendor_count
+        description: Number of distinct vendors.
+        agg: count_distinct
+        expr: VENDOR_ID
+
+      - name: overdue_invoice_count
+        description: Total number of overdue invoices.
+        agg: sum
+        expr: OVERDUE_INVOICE_COUNT
+
+      - name: pending_invoice_count
+        description: Total number of pending invoices.
+        agg: sum
+        expr: PENDING_INVOICE_COUNT
+
+      - name: avg_days_overdue
+        description: Average number of days invoices are past their due date.
+        agg: average
+        expr: AVG_DAYS_OVERDUE
+
+      - name: total_annual_spend
+        description: Sum of annual spend across vendors.
+        agg: sum
+        expr: ANNUAL_SPEND
+
+      - name: avg_credit_utilization
+        description: Average credit utilization percentage across vendors.
+        agg: average
+        expr: CREDIT_UTILIZATION_PCT
+
+      - name: avg_risk_score
+        description: Average composite risk score.
+        agg: average
+        expr: RISK_SCORE
+
+saved_queries:
+  - name: overdue_by_vendor
+    description: Outstanding balance and overdue invoice count grouped by vendor.
+    query_params:
+      metrics:
+        - total_outstanding_amount
+        - overdue_invoice_count
+        - avg_days_overdue
+      group_by:
+        - vendor_name
+        - risk_rating
+        - account_manager
+      where:
+        - "{{ Dimension('vendor__has_overdue_invoices') }} = TRUE"
+      order_by:
+        - metric(total_outstanding_amount) desc
+
+  - name: it_spend_by_business_unit
+    description: IT category spend broken down by business unit.
+    query_params:
+      metrics:
+        - total_invoice_amount
+        - invoice_count
+      group_by:
+        - vendor_type
+      where:
+        - "{{ Dimension('vendor__vendor_type') }} = 'IT'"
+
+  - name: critical_vendor_watchlist
+    description: Vendors classified as CRITICAL risk requiring immediate action.
+    query_params:
+      metrics:
+        - total_outstanding_amount
+        - overdue_invoice_count
+        - avg_days_overdue
+        - avg_credit_utilization
+      group_by:
+        - vendor_name
+        - risk_rating
+        - account_manager
+        - risk_score_category
+        - is_expiring_soon
+      where:
+        - "{{ Dimension('vendor__risk_score_category') }} = 'CRITICAL'"
+      order_by:
+        - metric(total_outstanding_amount) desc
+
+  - name: expiring_contracts
+    description: Vendors with contracts expiring within 90 days.
+    query_params:
+      metrics:
+        - total_outstanding_amount
+        - total_annual_spend
+      group_by:
+        - vendor_name
+        - risk_rating
+        - account_manager
+        - contract_end_date
+      where:
+        - "{{ Dimension('vendor__is_expiring_soon') }} = TRUE"
+      order_by:
+        - dimension(contract_end_date) asc

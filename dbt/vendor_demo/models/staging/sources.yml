@@ -1,0 +1,83 @@
+version: 2
+
+sources:
+  - name: raw
+    database: LEARNING_DB
+    schema: RAW
+    description: "Raw landing zone — source data as-is from upstream procurement and AP systems."
+    tables:
+      - name: vendor_master
+        description: "Master vendor registry from the procurement system. One row per vendor."
+        columns:
+          - name: VENDOR_ID
+            description: "Unique vendor ID from the procurement system (primary key)."
+          - name: VENDOR_NAME
+            description: "Legal vendor name as registered with the company."
+          - name: VENDOR_TYPE
+            description: "Category of vendor services (IT, Facilities, Logistics, etc.)."
+          - name: COUNTRY
+            description: "Country where the vendor is legally registered."
+          - name: PAYMENT_TERMS
+            description: "Agreed payment terms — NET15, NET30, NET45, or NET60."
+          - name: CREDIT_LIMIT
+            description: "Maximum credit limit extended to the vendor in USD."
+          - name: CONTRACT_START
+            description: "Date the vendor contract became effective."
+          - name: CONTRACT_END
+            description: "Date the vendor contract expires."
+          - name: RISK_RATING
+            description: "Vendor risk classification — LOW, MEDIUM, or HIGH."
+          - name: ACCOUNT_MANAGER
+            description: "Internal employee managing this vendor relationship."
+          - name: STATUS
+            description: "Current vendor status — ACTIVE or INACTIVE."
+          - name: ANNUAL_SPEND
+            description: "Total annual spend with this vendor in USD."
+          - name: TAX_ID
+            description: "Vendor tax identification number (excluded from marts)."
+          - name: PREFERRED_CURRENCY
+            description: "Vendor preferred payment currency (ISO 4217 code)."
+          - name: CREATED_DATE
+            description: "Date the vendor was onboarded to the system."
+
+      - name: vendor_invoices
+        description: "Accounts payable invoice records from the AP system. One row per invoice."
+        columns:
+          - name: INVOICE_ID
+            description: "Unique invoice ID from the AP system (primary key)."
+          - name: VENDOR_ID
+            description: "Foreign key to VENDOR_MASTER."
+          - name: INVOICE_DATE
+            description: "Date the invoice was issued by the vendor."
+          - name: DUE_DATE
+            description: "Date by which payment must be made."
+          - name: INVOICE_AMOUNT
+            description: "Total invoice value in USD."
+          - name: PAID_AMOUNT
+            description: "Amount already paid against this invoice in USD."
+          - name: STATUS
+            description: "Current invoice status — PAID, PENDING, or OVERDUE."
+          - name: BUSINESS_UNIT
+            description: "Business unit responsible for this invoice (BU_WEST, BU_EAST, BU_CENTRAL)."
+          - name: CATEGORY
+            description: "Spend category — IT, Facilities, Logistics, Construction, etc."
+          - name: COST_CENTER
+            description: "Financial cost center code for this invoice."
+          - name: APPROVER
+            description: "Internal employee responsible for approving payment."
+          - name: PAYMENT_METHOD
+            description: "Method of payment — ACH, WIRE, or CHECK."
+          - name: PO_NUMBER
+            description: "Associated purchase order reference number."
+          - name: NOTES
+            description: "Additional notes or comments on the invoice."
+
+      - name: dbt_model_config
+        description: "Config metadata table populated by scripts/load_config_to_snowflake.py from config/model_config.yml."
+        columns:
+          - name: TARGET_MODEL
+            description: "Name of the dbt staging model this row configures."
+          - name: COLUMN_NAME
+            description: "Name of the column in the source table."
+          - name: LOADED_AT
+            description: "Timestamp when this config row was loaded."

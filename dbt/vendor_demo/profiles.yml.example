@@ -1,0 +1,29 @@
+# Copy this file to ~/.dbt/profiles.yml and fill in your credentials.
+# NEVER commit the real profiles.yml to version control.
+
+vendor_demo:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: your-account.snowflakecomputing.com
+      user: your_username
+      password: your_password
+      role: SYSADMIN
+      database: LEARNING_DB
+      warehouse: COMPUTE_WH
+      schema: STAGING
+      threads: 4
+      client_session_keep_alive: false
+
+    ci:
+      type: snowflake
+      account: your-account.snowflakecomputing.com
+      user: your_username
+      password: your_password
+      role: SYSADMIN
+      database: LEARNING_DB
+      warehouse: COMPUTE_WH
+      schema: CI_STAGING
+      threads: 4
+      client_session_keep_alive: false

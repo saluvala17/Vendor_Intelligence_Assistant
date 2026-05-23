@@ -1,0 +1,114 @@
+version: 2
+
+models:
+  - name: stg_vendor_master
+    description: "Cleansed and enriched vendor master data. Adds contract expiry flags and credit utilization metrics."
+    columns:
+      - name: VENDOR_ID
+        description: "Unique vendor ID (primary key)."
+        tests:
+          - not_null
+          - unique
+      - name: VENDOR_NAME
+        description: "Legal vendor name — uppercased and trimmed."
+        tests:
+          - not_null
+      - name: VENDOR_TYPE
+        description: "Category of vendor services."
+      - name: COUNTRY
+        description: "Country where the vendor is registered."
+      - name: PAYMENT_TERMS
+        description: "Agreed payment terms."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["NET15", "NET30", "NET45", "NET60"]
+      - name: CREDIT_LIMIT
+        description: "Maximum credit limit in USD."
+      - name: CONTRACT_START
+        description: "Contract effective date."
+      - name: CONTRACT_END
+        description: "Contract expiry date."
+      - name: RISK_RATING
+        description: "Vendor risk classification."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["LOW", "MEDIUM", "HIGH"]
+      - name: ACCOUNT_MANAGER
+        description: "Internal relationship manager."
+      - name: STATUS
+        description: "Current vendor status."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["ACTIVE", "INACTIVE"]
+      - name: ANNUAL_SPEND
+        description: "Total annual spend in USD."
+      - name: PREFERRED_CURRENCY
+        description: "Vendor preferred payment currency."
+      - name: CONTRACT_DAYS_REMAINING
+        description: "Days until contract expiry. Negative means already expired."
+      - name: CREDIT_UTILIZATION_PCT
+        description: "Percentage of credit limit consumed by annual spend."
+      - name: IS_EXPIRING_SOON
+        description: "TRUE if contract expires within 90 days."
+      - name: DBT_LOADED_AT
+        description: "Timestamp when dbt last processed this row."
+
+  - name: stg_vendor_invoices
+    description: "Cleansed invoice data with outstanding balances, overdue tracking, and payment breach flags."
+    columns:
+      - name: INVOICE_ID
+        description: "Unique invoice ID (primary key)."
+        tests:
+          - not_null
+          - unique
+      - name: VENDOR_ID
+        description: "Foreign key to stg_vendor_master."
+        tests:
+          - not_null
+      - name: INVOICE_DATE
+        description: "Date the invoice was issued."
+        tests:
+          - not_null
+      - name: DUE_DATE
+        description: "Payment due date."
+        tests:
+          - not_null
+      - name: INVOICE_AMOUNT
+        description: "Total invoice value in USD."
+        tests:
+          - not_null
+      - name: PAID_AMOUNT
+        description: "Amount paid to date in USD."
+      - name: STATUS
+        description: "Invoice status."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["PAID", "PENDING", "OVERDUE"]
+      - name: BUSINESS_UNIT
+        description: "Responsible business unit."
+        tests:
+          - accepted_values:
+              values: ["BU_WEST", "BU_EAST", "BU_CENTRAL"]
+      - name: CATEGORY
+        description: "Spend category."
+      - name: COST_CENTER
+        description: "Financial cost center code."
+      - name: APPROVER
+        description: "Payment approver."
+      - name: PAYMENT_METHOD
+        description: "Payment method."
+        tests:
+          - accepted_values:
+              values: ["ACH", "WIRE", "CHECK"]
+      - name: OUTSTANDING_AMOUNT
+        description: "Remaining unpaid balance (INVOICE_AMOUNT - PAID_AMOUNT)."
+      - name: DAYS_OVERDUE
+        description: "Number of days past the due date. Positive = overdue."
+      - name: PAYMENT_BREACH
+        description: "TRUE if invoice is OVERDUE and more than 30 days past due date."
+      - name: DBT_LOADED_AT
+        description: "Timestamp when dbt last processed this row."

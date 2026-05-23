@@ -1,0 +1,349 @@
+version: "1.0"
+last_updated: "2026-05-22"
+author: "Santhosh Aluvala"
+description: >
+  Single source of truth for all dbt model configurations.
+  Edit this file to add columns, change materializations,
+  or add new source tables. Push to GitHub and CI/CD
+  handles everything automatically.
+
+models:
+
+  - source_schema: RAW
+    source_table: VENDOR_MASTER
+    target_schema: STAGING
+    target_model: STG_VENDOR_MASTER
+    materialization: view
+    unique_key: VENDOR_ID
+    load_type: FULL
+    is_active: true
+    columns:
+      - name: VENDOR_ID
+        data_type: VARCHAR
+        business_name: Vendor Identifier
+        description: Unique vendor ID from procurement system
+        is_pk: true
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: true
+          accepted_values: []
+      - name: VENDOR_NAME
+        data_type: VARCHAR
+        business_name: Vendor Name
+        description: Legal vendor name as registered
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: []
+      - name: VENDOR_TYPE
+        data_type: VARCHAR
+        business_name: Vendor Type
+        description: Category of vendor services provided
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: COUNTRY
+        data_type: VARCHAR
+        business_name: Country
+        description: Country where vendor is registered
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: PAYMENT_TERMS
+        data_type: VARCHAR
+        business_name: Payment Terms
+        description: Agreed payment terms eg NET30 NET45
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: ["NET15","NET30","NET45","NET60"]
+      - name: CREDIT_LIMIT
+        data_type: NUMBER
+        business_name: Credit Limit USD
+        description: Maximum credit extended to vendor in USD
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: CONTRACT_START
+        data_type: DATE
+        business_name: Contract Start Date
+        description: Date vendor contract became effective
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: CONTRACT_END
+        data_type: DATE
+        business_name: Contract End Date
+        description: Date vendor contract expires
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: RISK_RATING
+        data_type: VARCHAR
+        business_name: Risk Rating
+        description: Vendor risk classification LOW MEDIUM HIGH
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: ["LOW","MEDIUM","HIGH"]
+      - name: ACCOUNT_MANAGER
+        data_type: VARCHAR
+        business_name: Account Manager
+        description: CBRE employee managing this vendor relationship
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: STATUS
+        data_type: VARCHAR
+        business_name: Vendor Status
+        description: Current vendor status ACTIVE or INACTIVE
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: ["ACTIVE","INACTIVE"]
+      - name: ANNUAL_SPEND
+        data_type: NUMBER
+        business_name: Annual Spend USD
+        description: Total annual spend with this vendor in USD
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: TAX_ID
+        data_type: VARCHAR
+        business_name: Tax ID
+        description: Vendor tax identification number
+        is_pk: false
+        is_nullable: true
+        include_in_mart: false
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: PREFERRED_CURRENCY
+        data_type: VARCHAR
+        business_name: Preferred Currency
+        description: Vendor preferred payment currency
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: CREATED_DATE
+        data_type: DATE
+        business_name: Created Date
+        description: Date vendor was onboarded to the system
+        is_pk: false
+        is_nullable: true
+        include_in_mart: false
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+
+  - source_schema: RAW
+    source_table: VENDOR_INVOICES
+    target_schema: STAGING
+    target_model: STG_VENDOR_INVOICES
+    materialization: view
+    unique_key: INVOICE_ID
+    load_type: FULL
+    is_active: true
+    columns:
+      - name: INVOICE_ID
+        data_type: VARCHAR
+        business_name: Invoice Identifier
+        description: Unique invoice ID from AP system
+        is_pk: true
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: true
+          accepted_values: []
+      - name: VENDOR_ID
+        data_type: VARCHAR
+        business_name: Vendor Identifier
+        description: Foreign key to vendor master
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: []
+      - name: INVOICE_DATE
+        data_type: DATE
+        business_name: Invoice Date
+        description: Date invoice was issued by vendor
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: []
+      - name: DUE_DATE
+        data_type: DATE
+        business_name: Payment Due Date
+        description: Date by which payment must be made
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: []
+      - name: INVOICE_AMOUNT
+        data_type: NUMBER
+        business_name: Invoice Amount USD
+        description: Total invoice value in USD
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: []
+      - name: PAID_AMOUNT
+        data_type: NUMBER
+        business_name: Paid Amount USD
+        description: Amount already paid against this invoice
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: STATUS
+        data_type: VARCHAR
+        business_name: Invoice Status
+        description: Current invoice status PAID PENDING OVERDUE
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: ["PAID","PENDING","OVERDUE"]
+      - name: BUSINESS_UNIT
+        data_type: VARCHAR
+        business_name: Business Unit
+        description: CBRE business unit responsible for this invoice
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: ["BU_WEST","BU_EAST","BU_CENTRAL"]
+      - name: CATEGORY
+        data_type: VARCHAR
+        business_name: Spend Category
+        description: Spend category IT Facilities Logistics etc
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: COST_CENTER
+        data_type: VARCHAR
+        business_name: Cost Center
+        description: Financial cost center code for this invoice
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: APPROVER
+        data_type: VARCHAR
+        business_name: Invoice Approver
+        description: CBRE employee responsible for approving payment
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: PAYMENT_METHOD
+        data_type: VARCHAR
+        business_name: Payment Method
+        description: Method of payment ACH WIRE CHECK
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: ["ACH","WIRE","CHECK"]
+      - name: PO_NUMBER
+        data_type: VARCHAR
+        business_name: Purchase Order Number
+        description: Associated purchase order reference
+        is_pk: false
+        is_nullable: true
+        include_in_mart: false
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: NOTES
+        data_type: VARCHAR
+        business_name: Invoice Notes
+        description: Additional notes or comments on invoice
+        is_pk: false
+        is_nullable: true
+        include_in_mart: false
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []

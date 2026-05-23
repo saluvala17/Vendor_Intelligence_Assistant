@@ -1,0 +1,112 @@
+version: 2
+
+models:
+  - name: mart_vendor_payments
+    description: "Payment-centric view of all invoices with priority scoring and approver action flags. Primary mart for AP workflow analysis."
+    columns:
+      - name: INVOICE_ID
+        description: "Unique invoice ID (primary key)."
+        tests:
+          - not_null
+          - unique
+      - name: VENDOR_ID
+        description: "Vendor identifier."
+        tests:
+          - not_null
+      - name: INVOICE_DATE
+        description: "Date invoice was issued."
+      - name: DUE_DATE
+        description: "Payment due date."
+      - name: INVOICE_AMOUNT
+        description: "Total invoice value in USD."
+        tests:
+          - not_null
+      - name: PAID_AMOUNT
+        description: "Amount paid to date in USD."
+      - name: OUTSTANDING_AMOUNT
+        description: "Remaining unpaid balance in USD."
+      - name: STATUS
+        description: "Invoice status — PAID, PENDING, or OVERDUE."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["PAID", "PENDING", "OVERDUE"]
+      - name: BUSINESS_UNIT
+        description: "Responsible business unit."
+      - name: CATEGORY
+        description: "Spend category."
+      - name: APPROVER
+        description: "Payment approver."
+      - name: DAYS_OVERDUE
+        description: "Days past due date."
+      - name: PAYMENT_PRIORITY
+        description: "Payment priority based on status and outstanding amount."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["HIGH", "MEDIUM", "LOW"]
+      - name: APPROVER_ACTION_REQUIRED
+        description: "TRUE if invoice is PENDING and past its due date."
+      - name: DBT_LOADED_AT
+        description: "Timestamp when dbt last processed this row."
+
+  - name: mart_vendor_360
+    description: "360-degree vendor view joining master data with invoice activity. Includes risk scoring. Primary mart for the AI chatbot."
+    columns:
+      - name: VENDOR_ID
+        description: "Unique vendor ID (primary key)."
+        tests:
+          - not_null
+          - unique
+      - name: VENDOR_NAME
+        description: "Legal vendor name."
+        tests:
+          - not_null
+      - name: VENDOR_TYPE
+        description: "Category of vendor services."
+      - name: COUNTRY
+        description: "Country of registration."
+      - name: PAYMENT_TERMS
+        description: "Agreed payment terms."
+      - name: RISK_RATING
+        description: "Vendor risk classification."
+      - name: ACCOUNT_MANAGER
+        description: "Internal relationship manager."
+      - name: STATUS
+        description: "Current vendor status."
+      - name: ANNUAL_SPEND
+        description: "Total annual spend in USD."
+      - name: CREDIT_LIMIT
+        description: "Maximum credit limit in USD."
+      - name: CREDIT_UTILIZATION_PCT
+        description: "Percentage of credit limit consumed."
+      - name: CONTRACT_END
+        description: "Contract expiry date."
+      - name: CONTRACT_DAYS_REMAINING
+        description: "Days until contract expiry."
+      - name: IS_EXPIRING_SOON
+        description: "TRUE if contract expires within 90 days."
+      - name: TOTAL_INVOICE_AMOUNT
+        description: "Sum of all invoice amounts for this vendor."
+      - name: TOTAL_PAID_AMOUNT
+        description: "Sum of all payments made to this vendor."
+      - name: TOTAL_OUTSTANDING_AMOUNT
+        description: "Total outstanding balance owed to this vendor."
+      - name: INVOICE_COUNT
+        description: "Total number of invoices for this vendor."
+      - name: OVERDUE_INVOICE_COUNT
+        description: "Number of overdue invoices for this vendor."
+      - name: PENDING_INVOICE_COUNT
+        description: "Number of pending invoices for this vendor."
+      - name: AVG_DAYS_OVERDUE
+        description: "Average days overdue across all overdue invoices."
+      - name: HAS_OVERDUE_INVOICES
+        description: "TRUE if vendor has at least one OVERDUE invoice."
+      - name: RISK_SCORE
+        description: "Composite risk score (1-6). Higher = more risk."
+        tests:
+          - not_null
+      - name: RISK_SCORE_CATEGORY
+        description: "Risk score interpretation — CRITICAL, WATCH, or STABLE."
+      - name: DBT_LOADED_AT
+        description: "Timestamp when dbt last processed this row."
