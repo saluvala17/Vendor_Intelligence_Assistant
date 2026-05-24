@@ -61,6 +61,67 @@ def get_snowflake_connection() -> SnowflakeConnection:
 
 
 @st.cache_data(ttl=300)
+def get_dashboard_data() -> dict:
+    """Returns all chart/KPI data for the dashboard — cached 5 minutes."""
+    conn = get_snowflake_connection()
+    try:
+        kpi = conn.execute_query("""
+            SELECT
+                COUNT(DISTINCT PROJECT_ID)                                    AS total_projects,
+                SUM(TOTAL_OUTSTANDING_AMOUNT)                                 AS total_outstanding,
+                SUM(OVERDUE_COST_COUNT)                                       AS overdue_count,
+                COUNT(CASE WHEN RISK_SCORE_CATEGORY = 'CRITICAL' THEN 1 END) AS critical_count,
+                COUNT(CASE WHEN IS_OVER_BUDGET = TRUE THEN 1 END)            AS over_budget_count,
+                SUM(PENDING_COST_COUNT)                                       AS pending_approvals
+            FROM LEARNING_DB.MART.MART_PROJECT_360
+            WHERE STATUS = 'ACTIVE'
+        """)
+
+        budget_chart = conn.execute_query("""
+            SELECT
+                PROJECT_NAME,
+                BUDGET / 1000          AS BUDGET_K,
+                ACTUAL_COST_TO_DATE / 1000 AS ACTUAL_K,
+                IS_OVER_BUDGET,
+                RISK_SCORE_CATEGORY
+            FROM LEARNING_DB.MART.MART_PROJECT_360
+            WHERE STATUS = 'ACTIVE'
+            ORDER BY BUDGET DESC
+            LIMIT 8
+        """)
+
+        risk_chart = conn.execute_query("""
+            SELECT RISK_SCORE_CATEGORY, COUNT(*) AS CNT
+            FROM LEARNING_DB.MART.MART_PROJECT_360
+            WHERE STATUS = 'ACTIVE'
+            GROUP BY RISK_SCORE_CATEGORY
+            ORDER BY CNT DESC
+        """)
+
+        pm_chart = conn.execute_query("""
+            SELECT
+                p.PROJECT_MANAGER,
+                COUNT(jc.COST_ID)          AS PENDING_COUNT,
+                SUM(jc.OUTSTANDING_AMOUNT) AS PENDING_AMOUNT
+            FROM LEARNING_DB.MART.MART_JOB_COSTS jc
+            JOIN LEARNING_DB.MART.MART_PROJECT_360 p ON jc.PROJECT_ID = p.PROJECT_ID
+            WHERE jc.STATUS = 'PENDING'
+            GROUP BY p.PROJECT_MANAGER
+            ORDER BY PENDING_AMOUNT DESC
+            LIMIT 5
+        """)
+
+        return {
+            "kpi": kpi.iloc[0].to_dict() if not kpi.empty else {},
+            "budget_chart": budget_chart,
+            "risk_chart": risk_chart,
+            "pm_chart": pm_chart,
+        }
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=300)
 def get_live_stats() -> dict:
     """Returns sidebar KPI stats — cached for 5 minutes."""
     conn = get_snowflake_connection()
