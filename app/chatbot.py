@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from utils.snowflake_conn import get_dashboard_data, get_live_stats
 from utils.cortex_analyst import ask_vendor_analyst
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -155,6 +154,46 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ── Static dashboard data (Apex Build Co sample dataset) ─────────────────────
+# KPIs computed from 15 projects / 50 job cost entries
+STATIC_KPI = {
+    "total_projects":    14,        # 14 ACTIVE (P014 completed)
+    "critical_count":    3,         # P001 score=6, P002 score=5, P013 score=5
+    "over_budget_count": 1,         # P001: $920k actual vs $850k budget
+    "total_outstanding": 1_439_000, # PENDING $1.05M + OVERDUE $387k
+    "pending_approvals": 18,        # 18 PENDING cost entries across all PMs
+}
+
+# Top 8 projects by budget — for Budget vs Actual chart
+STATIC_BUDGET = pd.DataFrame({
+    "PROJECT_NAME": [
+        "Regional Water Treatment",
+        "Southgate Shopping Expan.",
+        "Riverside Apartments Ph.2",
+        "Industrial Warehouse",
+        "Alpine Luxury Homes",
+        "Highway Bridge Repair",
+        "Westfield Parking Struct.",
+        "Downtown Office Renov.",
+    ],
+    "BUDGET_K": [3200, 2500, 2100, 1800, 1400, 1200, 890, 850],
+    "ACTUAL_K": [1280, 1500, 1260,  900,  700,  575, 312, 920],
+    "IS_OVER_BUDGET": [False, False, False, False, False, False, False, True],
+})
+
+# Risk distribution — for donut chart
+STATIC_RISK = pd.DataFrame({
+    "RISK_SCORE_CATEGORY": ["CRITICAL", "WATCH", "STABLE"],
+    "CNT": [3, 4, 7],
+})
+
+# Pending approvals by PM — for bar chart
+STATIC_PM = pd.DataFrame({
+    "PROJECT_MANAGER": ["Mike Davis", "Sarah Johnson", "James Wilson", "Emily Chen", "Robert Brown"],
+    "PENDING_COUNT":   [7, 3, 3, 3, 2],
+    "PENDING_AMOUNT":  [340_000, 262_000, 245_000, 115_000, 90_000],
+})
+
 # ── Constants ─────────────────────────────────────────────────────────────────
 LOGO_SVG = """
 <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -191,24 +230,15 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Dashboard ─────────────────────────────────────────────────────────────────
-data = {}
-try:
-    data = get_dashboard_data()
-except Exception:
-    pass
-
-kpi = data.get("kpi", {})
-budget_df = data.get("budget_chart", pd.DataFrame())
-risk_df = data.get("risk_chart", pd.DataFrame())
-pm_df = data.get("pm_chart", pd.DataFrame())
-
-total_projects   = int(kpi.get("TOTAL_PROJECTS",   kpi.get("total_projects",   0)))
-total_outstanding = float(kpi.get("TOTAL_OUTSTANDING", kpi.get("total_outstanding", 0)))
-critical_count   = int(kpi.get("CRITICAL_COUNT",   kpi.get("critical_count",   0)))
-over_budget_count = int(kpi.get("OVER_BUDGET_COUNT", kpi.get("over_budget_count", 0)))
-pending_approvals = int(kpi.get("PENDING_APPROVALS", kpi.get("pending_approvals", 0)))
-overdue_count    = int(kpi.get("OVERDUE_COUNT",     kpi.get("overdue_count",    0)))
+# ── Dashboard — use static sample data ───────────────────────────────────────
+total_projects    = STATIC_KPI["total_projects"]
+critical_count    = STATIC_KPI["critical_count"]
+over_budget_count = STATIC_KPI["over_budget_count"]
+total_outstanding = STATIC_KPI["total_outstanding"]
+pending_approvals = STATIC_KPI["pending_approvals"]
+budget_df = STATIC_BUDGET
+risk_df   = STATIC_RISK
+pm_df     = STATIC_PM
 
 # KPI row
 st.markdown('<div class="section-title">Project Overview</div>', unsafe_allow_html=True)
@@ -262,107 +292,82 @@ ch1, ch2, ch3 = st.columns([5, 3, 4])
 with ch1:
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Budget vs Actual Cost ($K)</div>', unsafe_allow_html=True)
-    if not budget_df.empty:
-        # Normalize column names to uppercase
-        budget_df.columns = [c.upper() for c in budget_df.columns]
-        short_names = [n[:22] + "…" if len(n) > 22 else n for n in budget_df["PROJECT_NAME"].tolist()]
-        bar_colors = ["#DC2626" if v else "#E8720C" for v in budget_df["IS_OVER_BUDGET"].tolist()]
-
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            name="Budget",
-            y=short_names,
-            x=budget_df["BUDGET_K"],
-            orientation="h",
-            marker_color="#E5E7EB",
-            marker_line_width=0,
-        ))
-        fig.add_trace(go.Bar(
-            name="Actual",
-            y=short_names,
-            x=budget_df["ACTUAL_K"],
-            orientation="h",
-            marker_color=bar_colors,
-            marker_line_width=0,
-        ))
-        fig.update_layout(
-            barmode="overlay",
-            height=240,
-            margin=dict(l=0, r=10, t=4, b=0),
-            paper_bgcolor="white",
-            plot_bgcolor="white",
-            font=dict(size=10, color="#374151"),
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.0, xanchor="right", x=1,
-                font=dict(size=9),
-            ),
-            xaxis=dict(showgrid=True, gridcolor="#F3F4F6", zeroline=False,
-                       tickfont=dict(size=9), tickprefix="$", ticksuffix="K"),
-            yaxis=dict(tickfont=dict(size=9)),
-        )
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-    else:
-        st.caption("Connect to Apex Build Co data to see budget analysis.")
+    short_names = budget_df["PROJECT_NAME"].tolist()
+    bar_colors  = ["#DC2626" if v else "#E8720C" for v in budget_df["IS_OVER_BUDGET"].tolist()]
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name="Budget",
+        y=short_names, x=budget_df["BUDGET_K"],
+        orientation="h", marker_color="#E5E7EB", marker_line_width=0,
+    ))
+    fig.add_trace(go.Bar(
+        name="Actual",
+        y=short_names, x=budget_df["ACTUAL_K"],
+        orientation="h", marker_color=bar_colors, marker_line_width=0,
+    ))
+    fig.update_layout(
+        barmode="overlay", height=240,
+        margin=dict(l=0, r=10, t=4, b=0),
+        paper_bgcolor="white", plot_bgcolor="white",
+        font=dict(size=10, color="#374151"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="right", x=1,
+                    font=dict(size=9)),
+        xaxis=dict(showgrid=True, gridcolor="#F3F4F6", zeroline=False,
+                   tickfont=dict(size=9), tickprefix="$", ticksuffix="K"),
+        yaxis=dict(tickfont=dict(size=9)),
+    )
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Chart 2 — Risk donut
 with ch2:
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Risk Breakdown</div>', unsafe_allow_html=True)
-    if not risk_df.empty:
-        risk_df.columns = [c.upper() for c in risk_df.columns]
-        color_map = {"CRITICAL": "#DC2626", "WATCH": "#E8720C", "STABLE": "#16A34A"}
-        colors = [color_map.get(c, "#9CA3AF") for c in risk_df["RISK_SCORE_CATEGORY"].tolist()]
-        fig2 = go.Figure(go.Pie(
-            labels=risk_df["RISK_SCORE_CATEGORY"],
-            values=risk_df["CNT"],
-            hole=0.6,
-            marker_colors=colors,
-            textfont_size=10,
-            showlegend=True,
-        ))
-        fig2.update_layout(
-            height=240,
-            margin=dict(l=0, r=0, t=4, b=0),
-            paper_bgcolor="white",
-            font=dict(size=10, color="#374151"),
-            legend=dict(orientation="h", yanchor="bottom", y=-0.15,
-                        font=dict(size=9)),
-        )
-        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
-    else:
-        st.caption("Connect to see risk distribution.")
+    color_map = {"CRITICAL": "#DC2626", "WATCH": "#E8720C", "STABLE": "#16A34A"}
+    colors = [color_map.get(c, "#9CA3AF") for c in risk_df["RISK_SCORE_CATEGORY"].tolist()]
+    fig2 = go.Figure(go.Pie(
+        labels=risk_df["RISK_SCORE_CATEGORY"],
+        values=risk_df["CNT"],
+        hole=0.6,
+        marker_colors=colors,
+        textfont_size=10,
+        showlegend=True,
+    ))
+    fig2.update_layout(
+        height=240,
+        margin=dict(l=0, r=0, t=4, b=0),
+        paper_bgcolor="white",
+        font=dict(size=10, color="#374151"),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.15, font=dict(size=9)),
+    )
+    st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Chart 3 — Pending approvals by PM
 with ch3:
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Pending Approvals by Project Manager ($)</div>', unsafe_allow_html=True)
-    if not pm_df.empty:
-        pm_df.columns = [c.upper() for c in pm_df.columns]
-        first_names = [n.split()[0] if n else n for n in pm_df["PROJECT_MANAGER"].tolist()]
-        fig3 = go.Figure(go.Bar(
-            x=first_names,
-            y=pm_df["PENDING_AMOUNT"],
-            marker_color="#E8720C",
-            marker_line_width=0,
-            text=[f"${v:,.0f}" for v in pm_df["PENDING_AMOUNT"]],
-            textposition="outside",
-            textfont=dict(size=9),
-        ))
-        fig3.update_layout(
-            height=240,
-            margin=dict(l=0, r=10, t=20, b=0),
-            paper_bgcolor="white",
-            plot_bgcolor="white",
-            font=dict(size=10, color="#374151"),
-            xaxis=dict(tickfont=dict(size=9)),
-            yaxis=dict(showgrid=True, gridcolor="#F3F4F6", zeroline=False,
-                       tickfont=dict(size=9), tickprefix="$"),
-        )
-        st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
-    else:
-        st.caption("Connect to see approval queue.")
+    first_names = [n.split()[0] for n in pm_df["PROJECT_MANAGER"].tolist()]
+    fig3 = go.Figure(go.Bar(
+        x=first_names,
+        y=pm_df["PENDING_AMOUNT"],
+        marker_color="#E8720C",
+        marker_line_width=0,
+        text=[f"${v/1000:.0f}K" for v in pm_df["PENDING_AMOUNT"]],
+        textposition="outside",
+        textfont=dict(size=9),
+    ))
+    fig3.update_layout(
+        height=240,
+        margin=dict(l=0, r=10, t=20, b=0),
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        font=dict(size=10, color="#374151"),
+        xaxis=dict(tickfont=dict(size=9)),
+        yaxis=dict(showgrid=True, gridcolor="#F3F4F6", zeroline=False,
+                   tickfont=dict(size=9), tickprefix="$"),
+    )
+    st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── AI Chat Section ───────────────────────────────────────────────────────────
