@@ -1,22 +1,30 @@
 version: 2
 
 models:
-  - name: mart_vendor_payments
-    description: "Payment-centric view of all invoices with priority scoring and approver action flags. Primary mart for AP workflow analysis."
+  - name: mart_job_costs
+    description: "Payment-centric view of all job cost entries with priority scoring and approver action flags. Primary mart for AP workflow analysis."
     columns:
-      - name: INVOICE_ID
-        description: "Unique invoice ID (primary key)."
+      - name: COST_ID
+        description: "Unique cost entry ID (primary key)."
         data_tests:
           - not_null
           - unique
-      - name: VENDOR_ID
-        description: "Vendor identifier."
+      - name: PROJECT_ID
+        description: "Project identifier."
         data_tests:
           - not_null
-      - name: INVOICE_DATE
-        description: "Date invoice was issued."
+      - name: COST_DATE
+        description: "Date the cost was incurred or invoice issued."
       - name: DUE_DATE
         description: "Payment due date."
+      - name: VENDOR_NAME
+        description: "Subcontractor or supplier name."
+      - name: COST_TYPE
+        description: "Type of cost — SUBCONTRACT, MATERIAL, EQUIPMENT, LABOR, OVERHEAD."
+      - name: CATEGORY
+        description: "Detailed cost category."
+      - name: DESCRIPTION
+        description: "Description of the work or materials."
       - name: INVOICE_AMOUNT
         description: "Total invoice value in USD."
         data_tests:
@@ -26,84 +34,100 @@ models:
       - name: OUTSTANDING_AMOUNT
         description: "Remaining unpaid balance in USD."
       - name: STATUS
-        description: "Invoice status — PAID, PENDING, or OVERDUE."
+        description: "Payment status — PAID, PENDING, or OVERDUE."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ["PAID", "PENDING", "OVERDUE"]
-      - name: BUSINESS_UNIT
-        description: "Responsible business unit."
-      - name: CATEGORY
-        description: "Spend category."
       - name: APPROVER
-        description: "Payment approver."
+        description: "Project manager approving payment."
+      - name: PAYMENT_METHOD
+        description: "Payment method — ACH, WIRE, or CHECK."
+      - name: COST_CODE
+        description: "CSI or internal cost code."
       - name: DAYS_OVERDUE
         description: "Days past due date."
+      - name: LIEN_RISK
+        description: "TRUE if the entry is OVERDUE — unpaid subs can file liens."
       - name: PAYMENT_PRIORITY
-        description: "Payment priority based on status and outstanding amount."
+        description: "Payment priority — HIGH (overdue), MEDIUM (large outstanding), LOW."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ["HIGH", "MEDIUM", "LOW"]
       - name: APPROVER_ACTION_REQUIRED
-        description: "TRUE if invoice is PENDING and past its due date."
+        description: "TRUE if entry is PENDING and past its due date."
       - name: DBT_LOADED_AT
         description: "Timestamp when dbt last processed this row."
 
-  - name: mart_vendor_360
-    description: "360-degree vendor view joining master data with invoice activity. Includes risk scoring. Primary mart for the AI chatbot."
+  - name: mart_project_360
+    description: "360-degree project view joining project master with job cost aggregates. Includes risk scoring. Primary mart for the AI chatbot."
     columns:
-      - name: VENDOR_ID
-        description: "Unique vendor ID (primary key)."
+      - name: PROJECT_ID
+        description: "Unique project ID (primary key)."
         data_tests:
           - not_null
           - unique
-      - name: VENDOR_NAME
-        description: "Legal vendor name."
+      - name: PROJECT_NAME
+        description: "Descriptive project name."
         data_tests:
           - not_null
-      - name: VENDOR_TYPE
-        description: "Category of vendor services."
-      - name: COUNTRY
-        description: "Country of registration."
+      - name: CLIENT_NAME
+        description: "Client or project owner name."
+      - name: PROJECT_TYPE
+        description: "Category of construction project."
+      - name: LOCATION
+        description: "City and state of the project."
+      - name: PROJECT_MANAGER
+        description: "Internal project manager."
+      - name: CONTRACT_VALUE
+        description: "Total contract value in USD."
+      - name: BUDGET
+        description: "Approved internal budget in USD."
+      - name: ACTUAL_COST_TO_DATE
+        description: "Total costs incurred to date in USD."
+      - name: STATUS
+        description: "Project status — ACTIVE or COMPLETED."
+      - name: COMPLETION_PCT
+        description: "Actual completion percentage."
+      - name: EXPECTED_COMPLETION_PCT
+        description: "Planned completion percentage."
+      - name: RISK_LEVEL
+        description: "Project risk classification — LOW, MEDIUM, or HIGH."
       - name: PAYMENT_TERMS
         description: "Agreed payment terms."
-      - name: RISK_RATING
-        description: "Vendor risk classification."
-      - name: ACCOUNT_MANAGER
-        description: "Internal relationship manager."
-      - name: STATUS
-        description: "Current vendor status."
-      - name: ANNUAL_SPEND
-        description: "Total annual spend in USD."
-      - name: CREDIT_LIMIT
-        description: "Maximum credit limit in USD."
-      - name: CREDIT_UTILIZATION_PCT
-        description: "Percentage of credit limit consumed."
-      - name: CONTRACT_END
-        description: "Contract expiry date."
-      - name: CONTRACT_DAYS_REMAINING
-        description: "Days until contract expiry."
+      - name: BUDGET_VARIANCE
+        description: "Actual cost minus budget. Positive = over budget."
+      - name: BUDGET_VARIANCE_PCT
+        description: "Budget variance as percentage of approved budget."
+      - name: IS_OVER_BUDGET
+        description: "TRUE if actual costs exceed approved budget."
+      - name: SCHEDULE_VARIANCE_PCT
+        description: "Completion PCT minus expected completion PCT. Negative = behind."
+      - name: IS_BEHIND_SCHEDULE
+        description: "TRUE if actual completion is below planned completion."
+      - name: DAYS_TO_DEADLINE
+        description: "Days until expected end date. Negative = past deadline."
       - name: IS_EXPIRING_SOON
-        description: "TRUE if contract expires within 90 days."
-      - name: TOTAL_INVOICE_AMOUNT
-        description: "Sum of all invoice amounts for this vendor."
+        description: "TRUE if deadline is within 90 days."
+      - name: TOTAL_COST_AMOUNT
+        description: "Sum of all job cost invoice amounts for this project."
       - name: TOTAL_PAID_AMOUNT
-        description: "Sum of all payments made to this vendor."
+        description: "Sum of all payments made on this project."
       - name: TOTAL_OUTSTANDING_AMOUNT
-        description: "Total outstanding balance owed to this vendor."
-      - name: INVOICE_COUNT
-        description: "Total number of invoices for this vendor."
-      - name: OVERDUE_INVOICE_COUNT
-        description: "Number of overdue invoices for this vendor."
-      - name: PENDING_INVOICE_COUNT
-        description: "Number of pending invoices for this vendor."
+        description: "Total outstanding balance owed on this project."
+      - name: COST_ENTRY_COUNT
+        description: "Total number of job cost entries for this project."
+      - name: OVERDUE_COST_COUNT
+        description: "Number of overdue cost entries for this project."
+      - name: PENDING_COST_COUNT
+        description: "Number of pending cost entries for this project."
       - name: AVG_DAYS_OVERDUE
-        description: "Average days overdue across all overdue invoices."
-      - name: HAS_OVERDUE_INVOICES
-        description: "TRUE if vendor has at least one OVERDUE invoice."
+        description: "Average days overdue across all overdue entries."
+      - name: HAS_OVERDUE_COSTS
+        description: "TRUE if project has at least one OVERDUE job cost entry."
       - name: RISK_SCORE
         description: "Composite risk score (1-6). Higher = more risk."
         data_tests:

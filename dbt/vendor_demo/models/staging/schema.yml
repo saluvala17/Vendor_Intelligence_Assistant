@@ -1,84 +1,115 @@
 version: 2
 
 models:
-  - name: stg_vendor_master
-    description: "Cleansed and enriched vendor master data. Adds contract expiry flags and credit utilization metrics."
+  - name: stg_projects
+    description: "Cleansed and enriched project master data. Adds budget variance, schedule variance, and deadline flags."
     columns:
-      - name: VENDOR_ID
-        description: "Unique vendor ID (primary key)."
+      - name: PROJECT_ID
+        description: "Unique project ID (primary key)."
         data_tests:
           - not_null
           - unique
-      - name: VENDOR_NAME
-        description: "Legal vendor name — uppercased and trimmed."
+      - name: PROJECT_NAME
+        description: "Descriptive project name — uppercased and trimmed."
         data_tests:
           - not_null
-      - name: VENDOR_TYPE
-        description: "Category of vendor services."
-      - name: COUNTRY
-        description: "Country where the vendor is registered."
-      - name: PAYMENT_TERMS
-        description: "Agreed payment terms."
+      - name: CLIENT_NAME
+        description: "Name of the client or project owner."
+      - name: PROJECT_TYPE
+        description: "Category of construction project."
+      - name: LOCATION
+        description: "City and state where the project is located."
+      - name: PROJECT_MANAGER
+        description: "Apex Build Co employee managing this project."
+      - name: CONTRACT_VALUE
+        description: "Total contract value in USD."
+      - name: BUDGET
+        description: "Approved internal budget in USD."
+      - name: ACTUAL_COST_TO_DATE
+        description: "Total costs incurred to date in USD."
+      - name: START_DATE
+        description: "Construction start date."
+      - name: EXPECTED_END_DATE
+        description: "Contractual completion deadline."
+      - name: ACTUAL_END_DATE
+        description: "Actual completion date (NULL if active)."
+      - name: STATUS
+        description: "Current project status."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ["NET15", "NET30", "NET45", "NET60"]
-      - name: CREDIT_LIMIT
-        description: "Maximum credit limit in USD."
-      - name: CONTRACT_START
-        description: "Contract effective date."
-      - name: CONTRACT_END
-        description: "Contract expiry date."
-      - name: RISK_RATING
-        description: "Vendor risk classification."
+                values: ["ACTIVE", "COMPLETED"]
+      - name: COMPLETION_PCT
+        description: "Actual percentage of work completed."
+      - name: EXPECTED_COMPLETION_PCT
+        description: "Planned completion percentage based on schedule."
+      - name: RISK_LEVEL
+        description: "Project risk classification."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ["LOW", "MEDIUM", "HIGH"]
-      - name: ACCOUNT_MANAGER
-        description: "Internal relationship manager."
-      - name: STATUS
-        description: "Current vendor status."
+      - name: PAYMENT_TERMS
+        description: "Agreed payment terms."
         data_tests:
-          - not_null
           - accepted_values:
               arguments:
-                values: ["ACTIVE", "INACTIVE"]
-      - name: ANNUAL_SPEND
-        description: "Total annual spend in USD."
-      - name: PREFERRED_CURRENCY
-        description: "Vendor preferred payment currency."
-      - name: CONTRACT_DAYS_REMAINING
-        description: "Days until contract expiry. Negative means already expired."
-      - name: CREDIT_UTILIZATION_PCT
-        description: "Percentage of credit limit consumed by annual spend."
+                values: ["NET30", "NET45"]
+      - name: RETAINAGE_PCT
+        description: "Percentage of each payment withheld as retainage."
+      - name: PERMIT_NUMBER
+        description: "Building permit number."
+      - name: BUDGET_VARIANCE
+        description: "ACTUAL_COST_TO_DATE minus BUDGET. Positive = over budget."
+      - name: BUDGET_VARIANCE_PCT
+        description: "Budget variance as a percentage of approved budget."
+      - name: IS_OVER_BUDGET
+        description: "TRUE if actual costs exceed the approved budget."
+      - name: SCHEDULE_VARIANCE_PCT
+        description: "COMPLETION_PCT minus EXPECTED_COMPLETION_PCT. Negative = behind schedule."
+      - name: IS_BEHIND_SCHEDULE
+        description: "TRUE if actual completion is below the planned completion."
+      - name: DAYS_TO_DEADLINE
+        description: "Days until expected end date. Negative means past deadline."
       - name: IS_EXPIRING_SOON
-        description: "TRUE if contract expires within 90 days."
+        description: "TRUE if deadline is within 90 days."
       - name: DBT_LOADED_AT
         description: "Timestamp when dbt last processed this row."
 
-  - name: stg_vendor_invoices
-    description: "Cleansed invoice data with outstanding balances, overdue tracking, and payment breach flags."
+  - name: stg_job_costs
+    description: "Cleansed job cost data with outstanding balances, overdue tracking, and lien risk flags."
     columns:
-      - name: INVOICE_ID
-        description: "Unique invoice ID (primary key)."
+      - name: COST_ID
+        description: "Unique cost entry ID (primary key)."
         data_tests:
           - not_null
           - unique
-      - name: VENDOR_ID
-        description: "Foreign key to stg_vendor_master."
+      - name: PROJECT_ID
+        description: "Foreign key to stg_projects."
         data_tests:
           - not_null
-      - name: INVOICE_DATE
-        description: "Date the invoice was issued."
+      - name: COST_DATE
+        description: "Date the cost was incurred."
         data_tests:
           - not_null
       - name: DUE_DATE
         description: "Payment due date."
         data_tests:
           - not_null
+      - name: VENDOR_NAME
+        description: "Subcontractor or supplier name."
+      - name: COST_TYPE
+        description: "Type of cost entry."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["SUBCONTRACT", "MATERIAL", "EQUIPMENT", "LABOR", "OVERHEAD"]
+      - name: CATEGORY
+        description: "Detailed cost category (Electrical, Plumbing, etc.)."
+      - name: DESCRIPTION
+        description: "Free-text description of the work or materials."
       - name: INVOICE_AMOUNT
         description: "Total invoice value in USD."
         data_tests:
@@ -86,35 +117,27 @@ models:
       - name: PAID_AMOUNT
         description: "Amount paid to date in USD."
       - name: STATUS
-        description: "Invoice status."
+        description: "Current payment status."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ["PAID", "PENDING", "OVERDUE"]
-      - name: BUSINESS_UNIT
-        description: "Responsible business unit."
-        data_tests:
-          - accepted_values:
-              arguments:
-                values: ["BU_WEST", "BU_EAST", "BU_CENTRAL"]
-      - name: CATEGORY
-        description: "Spend category."
-      - name: COST_CENTER
-        description: "Financial cost center code."
       - name: APPROVER
-        description: "Payment approver."
+        description: "Project manager approving payment."
       - name: PAYMENT_METHOD
-        description: "Payment method."
+        description: "Method of payment."
         data_tests:
           - accepted_values:
               arguments:
                 values: ["ACH", "WIRE", "CHECK"]
+      - name: COST_CODE
+        description: "CSI or internal cost code."
       - name: OUTSTANDING_AMOUNT
         description: "Remaining unpaid balance (INVOICE_AMOUNT - PAID_AMOUNT)."
       - name: DAYS_OVERDUE
-        description: "Number of days past the due date. Positive = overdue."
-      - name: PAYMENT_BREACH
-        description: "TRUE if invoice is OVERDUE and more than 30 days past due date."
+        description: "Days past the due date. Positive = overdue."
+      - name: LIEN_RISK
+        description: "TRUE if the cost entry is OVERDUE — unpaid subs create lien risk."
       - name: DBT_LOADED_AT
         description: "Timestamp when dbt last processed this row."

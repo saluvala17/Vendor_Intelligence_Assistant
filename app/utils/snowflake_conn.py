@@ -67,23 +67,23 @@ def get_live_stats() -> dict:
     try:
         df = conn.execute_query("""
             SELECT
-                COUNT(DISTINCT VENDOR_ID)                                AS total_vendors,
-                SUM(TOTAL_OUTSTANDING_AMOUNT)                            AS total_outstanding,
-                SUM(OVERDUE_INVOICE_COUNT)                               AS overdue_count,
+                COUNT(DISTINCT PROJECT_ID)                                   AS total_projects,
+                SUM(TOTAL_OUTSTANDING_AMOUNT)                                AS total_outstanding,
+                SUM(OVERDUE_COST_COUNT)                                      AS overdue_count,
                 COUNT(CASE WHEN RISK_SCORE_CATEGORY = 'CRITICAL' THEN 1 END) AS critical_count
-            FROM LEARNING_DB.MART.MART_VENDOR_360
+            FROM LEARNING_DB.MART.MART_PROJECT_360
             WHERE STATUS = 'ACTIVE'
         """)
         row = df.iloc[0]
         return {
-            "total_vendors": int(row["TOTAL_VENDORS"]),
+            "total_projects": int(row["TOTAL_PROJECTS"]),
             "total_outstanding": float(row["TOTAL_OUTSTANDING"]),
             "overdue_count": int(row["OVERDUE_COUNT"]),
             "critical_count": int(row["CRITICAL_COUNT"]),
         }
     except Exception:
         return {
-            "total_vendors": 0,
+            "total_projects": 0,
             "total_outstanding": 0.0,
             "overdue_count": 0,
             "critical_count": 0,

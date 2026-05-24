@@ -1,129 +1,139 @@
 semantic_models:
-  - name: vendor_360
+  - name: project_360
     description: >
-      360-degree vendor intelligence model. Combines vendor master data with
-      invoice aggregates and risk scoring. This is the primary semantic layer
+      360-degree construction project intelligence model. Combines project master data
+      with job cost aggregates and composite risk scoring. Primary semantic layer
       consumed by the AI chatbot and executive dashboards.
-    model: ref('mart_vendor_360')
+    model: ref('mart_project_360')
 
     entities:
-      - name: vendor
+      - name: project
         type: primary
-        expr: VENDOR_ID
+        expr: PROJECT_ID
 
     dimensions:
-      - name: vendor_name
+      - name: project_name
         type: categorical
-        expr: VENDOR_NAME
-        description: Legal vendor name as registered.
+        expr: PROJECT_NAME
+        description: Descriptive name of the construction project.
 
-      - name: vendor_type
+      - name: client_name
         type: categorical
-        expr: VENDOR_TYPE
-        description: Category of vendor services (IT, Facilities, Logistics, etc.).
+        expr: CLIENT_NAME
+        description: Name of the client or project owner.
 
-      - name: risk_rating
+      - name: project_type
         type: categorical
-        expr: RISK_RATING
-        description: Vendor risk classification — LOW, MEDIUM, or HIGH.
+        expr: PROJECT_TYPE
+        description: Category of construction project (Commercial, Residential, Infrastructure, etc.).
+
+      - name: project_manager
+        type: categorical
+        expr: PROJECT_MANAGER
+        description: Apex Build Co employee managing this project.
+
+      - name: location
+        type: categorical
+        expr: LOCATION
+        description: City and state where the project is located.
+
+      - name: risk_level
+        type: categorical
+        expr: RISK_LEVEL
+        description: Project risk classification — LOW, MEDIUM, or HIGH.
 
       - name: payment_terms
         type: categorical
         expr: PAYMENT_TERMS
-        description: Agreed payment terms — NET15, NET30, NET45, NET60.
+        description: Agreed payment terms — NET30 or NET45.
 
-      - name: account_manager
-        type: categorical
-        expr: ACCOUNT_MANAGER
-        description: Internal employee managing this vendor relationship.
-
-      - name: vendor_status
+      - name: project_status
         type: categorical
         expr: STATUS
-        description: Current vendor status — ACTIVE or INACTIVE.
-
-      - name: country
-        type: categorical
-        expr: COUNTRY
-        description: Country where the vendor is registered.
-
-      - name: preferred_currency
-        type: categorical
-        expr: PREFERRED_CURRENCY
-        description: Vendor preferred payment currency.
+        description: Current project status — ACTIVE or COMPLETED.
 
       - name: risk_score_category
         type: categorical
         expr: RISK_SCORE_CATEGORY
         description: Composite risk category — CRITICAL, WATCH, or STABLE.
 
-      - name: contract_end_date
+      - name: expected_end_date
         type: time
         type_params:
           time_granularity: day
-        expr: CONTRACT_END
-        description: Date the vendor contract expires.
+        expr: EXPECTED_END_DATE
+        description: Contractual project completion deadline.
 
       - name: is_expiring_soon
         type: categorical
         expr: IS_EXPIRING_SOON
-        description: TRUE if contract expires within 90 days.
+        description: TRUE if project deadline is within 90 days.
 
-      - name: has_overdue_invoices
+      - name: is_over_budget
         type: categorical
-        expr: HAS_OVERDUE_INVOICES
-        description: TRUE if the vendor has at least one OVERDUE invoice.
+        expr: IS_OVER_BUDGET
+        description: TRUE if actual costs exceed the approved budget.
+
+      - name: is_behind_schedule
+        type: categorical
+        expr: IS_BEHIND_SCHEDULE
+        description: TRUE if actual completion is below the planned completion percentage.
+
+      - name: has_overdue_costs
+        type: categorical
+        expr: HAS_OVERDUE_COSTS
+        description: TRUE if the project has at least one OVERDUE job cost entry (lien risk).
 
     measures:
-      - name: total_invoice_amount
-        description: Sum of all invoice amounts for vendors matching the filter.
+      - name: total_cost_amount
+        description: Sum of all job cost invoice amounts for projects matching the filter.
         agg: sum
-        expr: TOTAL_INVOICE_AMOUNT
+        expr: TOTAL_COST_AMOUNT
 
       - name: total_outstanding_amount
-        description: Total outstanding (unpaid) balance across vendors.
+        description: Total outstanding (unpaid) balance across projects.
         agg: sum
         expr: TOTAL_OUTSTANDING_AMOUNT
 
       - name: total_paid_amount
-        description: Total amount paid to vendors.
+        description: Total amount paid on projects.
         agg: sum
         expr: TOTAL_PAID_AMOUNT
 
-      - name: invoice_count
-        description: Total number of invoices.
+      - name: total_budget
+        description: Sum of approved budgets across projects.
         agg: sum
-        expr: INVOICE_COUNT
+        expr: BUDGET
 
-      - name: vendor_count
-        description: Number of distinct vendors.
+      - name: total_contract_value
+        description: Sum of contract values across projects.
+        agg: sum
+        expr: CONTRACT_VALUE
+
+      - name: project_count
+        description: Number of distinct projects.
         agg: count_distinct
-        expr: VENDOR_ID
+        expr: PROJECT_ID
 
-      - name: overdue_invoice_count
-        description: Total number of overdue invoices.
+      - name: overdue_cost_count
+        description: Total number of overdue job cost entries.
         agg: sum
-        expr: OVERDUE_INVOICE_COUNT
+        expr: OVERDUE_COST_COUNT
 
-      - name: pending_invoice_count
-        description: Total number of pending invoices.
+      - name: pending_cost_count
+        description: Total number of pending job cost entries.
         agg: sum
-        expr: PENDING_INVOICE_COUNT
+        expr: PENDING_COST_COUNT
 
       - name: avg_days_overdue
-        description: Average number of days invoices are past their due date.
+        description: Average number of days job costs are past their due date.
         agg: average
         expr: AVG_DAYS_OVERDUE
 
-      - name: total_annual_spend
-        description: Sum of annual spend across vendors.
-        agg: sum
-        expr: ANNUAL_SPEND
-
-      - name: avg_credit_utilization
-        description: Average credit utilization percentage across vendors.
+      - name: avg_budget_variance_pct
+        description: Average budget variance percentage across projects.
         agg: average
-        expr: CREDIT_UTILIZATION_PCT
+        expr: BUDGET_VARIANCE_PCT
 
       - name: avg_risk_score
         description: Average composite risk score.
@@ -131,64 +141,69 @@ semantic_models:
         expr: RISK_SCORE
 
 saved_queries:
-  - name: overdue_by_vendor
-    description: Outstanding balance and overdue invoice count grouped by vendor.
+  - name: overdue_by_project
+    description: Outstanding balance and overdue cost count grouped by project with lien risk.
     query_params:
       metrics:
         - total_outstanding_amount
-        - overdue_invoice_count
+        - overdue_cost_count
         - avg_days_overdue
       group_by:
-        - vendor_name
-        - risk_rating
-        - account_manager
+        - project_name
+        - project_manager
+        - risk_level
       where:
-        - "{{ Dimension('vendor__has_overdue_invoices') }} = TRUE"
+        - "{{ Dimension('project__has_overdue_costs') }} = TRUE"
       order_by:
         - metric(total_outstanding_amount) desc
 
-  - name: it_spend_by_business_unit
-    description: IT category spend broken down by business unit.
-    query_params:
-      metrics:
-        - total_invoice_amount
-        - invoice_count
-      group_by:
-        - vendor_type
-      where:
-        - "{{ Dimension('vendor__vendor_type') }} = 'IT'"
-
-  - name: critical_vendor_watchlist
-    description: Vendors classified as CRITICAL risk requiring immediate action.
+  - name: over_budget_projects
+    description: Projects where actual spend exceeds the approved budget.
     query_params:
       metrics:
         - total_outstanding_amount
-        - overdue_invoice_count
-        - avg_days_overdue
-        - avg_credit_utilization
+        - avg_budget_variance_pct
       group_by:
-        - vendor_name
-        - risk_rating
-        - account_manager
+        - project_name
+        - project_manager
+        - risk_level
+      where:
+        - "{{ Dimension('project__is_over_budget') }} = TRUE"
+      order_by:
+        - metric(avg_budget_variance_pct) desc
+
+  - name: critical_project_watchlist
+    description: Projects classified as CRITICAL risk requiring immediate executive attention.
+    query_params:
+      metrics:
+        - total_outstanding_amount
+        - overdue_cost_count
+        - avg_days_overdue
+        - avg_budget_variance_pct
+      group_by:
+        - project_name
+        - project_manager
+        - risk_level
         - risk_score_category
-        - is_expiring_soon
+        - is_over_budget
+        - is_behind_schedule
       where:
-        - "{{ Dimension('vendor__risk_score_category') }} = 'CRITICAL'"
+        - "{{ Dimension('project__risk_score_category') }} = 'CRITICAL'"
       order_by:
         - metric(total_outstanding_amount) desc
 
-  - name: expiring_contracts
-    description: Vendors with contracts expiring within 90 days.
+  - name: deadline_watchlist
+    description: Projects with deadlines expiring within 90 days.
     query_params:
       metrics:
         - total_outstanding_amount
-        - total_annual_spend
+        - total_budget
       group_by:
-        - vendor_name
-        - risk_rating
-        - account_manager
-        - contract_end_date
+        - project_name
+        - project_manager
+        - risk_level
+        - expected_end_date
       where:
-        - "{{ Dimension('vendor__is_expiring_soon') }} = TRUE"
+        - "{{ Dimension('project__is_expiring_soon') }} = TRUE"
       order_by:
-        - dimension(contract_end_date) asc
+        - dimension(expected_end_date) asc

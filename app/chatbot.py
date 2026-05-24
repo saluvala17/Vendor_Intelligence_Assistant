@@ -21,8 +21,8 @@ from utils.snowflake_conn import get_live_stats
 from utils.cortex_analyst import ask_vendor_analyst
 
 # ── Page configuration ────────────────────────────────────────────────────────
-APP_TITLE = os.getenv("APP_TITLE", "Vendor Intelligence Assistant")
-COMPANY_NAME = os.getenv("COMPANY_NAME", "Enterprise Corp")
+APP_TITLE = os.getenv("APP_TITLE", "Project Intelligence Assistant")
+COMPANY_NAME = os.getenv("COMPANY_NAME", "Apex Build Co")
 GITHUB_URL = os.getenv("GITHUB_REPO_URL", "https://github.com/saluvala17/vendor-dbt-demo")
 
 st.set_page_config(
@@ -80,12 +80,12 @@ st.markdown("""
 
 # ── Sample questions ───────────────────────────────────────────────────────────
 SAMPLE_QUESTIONS = [
-    "Which vendors are at payment risk?",
-    "What is our total outstanding AP balance?",
-    "Which vendor contracts expire in 90 days?",
-    "Who has the most pending invoice approvals?",
-    "Show IT category spend by business unit",
-    "Which HIGH risk vendors have overdue invoices?",
+    "Which projects are over budget?",
+    "What is our total outstanding job cost balance?",
+    "Which projects are behind schedule?",
+    "Who has the most pending payment approvals?",
+    "Show electrical category spend across all projects",
+    "Which HIGH risk projects have overdue subcontractor payments?",
 ]
 
 # ── Session state initialization ──────────────────────────────────────────────
@@ -107,17 +107,17 @@ with st.sidebar:
 
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown(f'<div class="kpi-value">{stats["total_vendors"]}</div>', unsafe_allow_html=True)
-            st.markdown('<div class="kpi-label">Active Vendors</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="kpi-value">{stats["total_projects"]}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="kpi-label">Active Projects</div>', unsafe_allow_html=True)
         with col2:
             st.markdown(f'<div class="kpi-value kpi-danger">{stats["overdue_count"]}</div>', unsafe_allow_html=True)
-            st.markdown('<div class="kpi-label">Overdue Invoices</div>', unsafe_allow_html=True)
+            st.markdown('<div class="kpi-label">Overdue Costs</div>', unsafe_allow_html=True)
 
         st.markdown(f'<div class="kpi-value">${stats["total_outstanding"]:,.0f}</div>', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">Total Outstanding AP</div>', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">Total Outstanding Costs</div>', unsafe_allow_html=True)
 
         st.markdown(f'<div class="kpi-value kpi-danger">{stats["critical_count"]}</div>', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">🔴 Critical Vendors</div>', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">🔴 Critical Projects</div>', unsafe_allow_html=True)
 
     except Exception as e:
         st.warning(f"Stats unavailable: check Snowflake credentials in .env")
@@ -159,8 +159,8 @@ This chatbot
 ```
 
 **Models used:**
-- `MART_VENDOR_360` — primary chatbot source
-- `MART_VENDOR_PAYMENTS` — invoice analysis
+- `MART_PROJECT_360` — primary chatbot source
+- `MART_JOB_COSTS` — cost & payment analysis
 """)
 
 # ── Main content ──────────────────────────────────────────────────────────────
@@ -177,12 +177,12 @@ st.markdown("")
 # Welcome message (shown only on first load)
 if not st.session_state.messages:
     st.info(
-        "👋 **Welcome to Vendor Intelligence Assistant**\n\n"
-        "I analyze your vendor data in real time using AI. Ask me anything about:\n"
-        "- Payment risk and overdue invoices\n"
-        "- Contract expiry and renewal priorities\n"
-        "- Spend analysis by category or business unit\n"
-        "- Approver action queues and bottlenecks\n\n"
+        "👋 **Welcome to Project Intelligence Assistant**\n\n"
+        "I analyze Apex Build Co's construction project data in real time using AI. Ask me anything about:\n"
+        "- Budget overruns and cost variance by project\n"
+        "- Schedule delays and liquidated damages risk\n"
+        "- Subcontractor payment backlogs and lien risk\n"
+        "- Approver action queues and payment prioritization\n\n"
         "Type a question below or click a sample in the sidebar.",
         icon="📊",
     )
@@ -199,7 +199,7 @@ for msg in st.session_state.messages:
                 st.dataframe(msg["dataframe"], use_container_width=True)
 
 # ── Chat input ────────────────────────────────────────────────────────────────
-question = st.chat_input("Ask about vendor risk, payments, contracts...")
+question = st.chat_input("Ask about project budgets, schedules, subcontractor payments...")
 
 # Handle sidebar button clicks
 if st.session_state.pending_question:

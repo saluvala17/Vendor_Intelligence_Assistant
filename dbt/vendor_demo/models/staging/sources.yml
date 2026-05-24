@@ -4,73 +4,85 @@ sources:
   - name: raw
     database: LEARNING_DB
     schema: RAW
-    description: "Raw landing zone — source data as-is from upstream procurement and AP systems."
+    description: "Raw landing zone — construction project data as-is from Apex Build Co systems."
     tables:
-      - name: vendor_master
-        description: "Master vendor registry from the procurement system. One row per vendor."
+      - name: projects
+        description: "Master project registry for all active and completed construction projects. One row per project."
         columns:
-          - name: VENDOR_ID
-            description: "Unique vendor ID from the procurement system (primary key)."
-          - name: VENDOR_NAME
-            description: "Legal vendor name as registered with the company."
-          - name: VENDOR_TYPE
-            description: "Category of vendor services (IT, Facilities, Logistics, etc.)."
-          - name: COUNTRY
-            description: "Country where the vendor is legally registered."
-          - name: PAYMENT_TERMS
-            description: "Agreed payment terms — NET15, NET30, NET45, or NET60."
-          - name: CREDIT_LIMIT
-            description: "Maximum credit limit extended to the vendor in USD."
-          - name: CONTRACT_START
-            description: "Date the vendor contract became effective."
-          - name: CONTRACT_END
-            description: "Date the vendor contract expires."
-          - name: RISK_RATING
-            description: "Vendor risk classification — LOW, MEDIUM, or HIGH."
-          - name: ACCOUNT_MANAGER
-            description: "Internal employee managing this vendor relationship."
+          - name: PROJECT_ID
+            description: "Unique project ID from the project management system (primary key)."
+          - name: PROJECT_NAME
+            description: "Descriptive name of the construction project."
+          - name: CLIENT_NAME
+            description: "Name of the client or project owner."
+          - name: PROJECT_TYPE
+            description: "Category of construction project (Commercial, Residential, Infrastructure, etc.)."
+          - name: LOCATION
+            description: "City and state where the project is located."
+          - name: PROJECT_MANAGER
+            description: "Apex Build Co employee managing this project."
+          - name: CONTRACT_VALUE
+            description: "Total value of the signed contract in USD."
+          - name: BUDGET
+            description: "Approved internal budget for the project in USD."
+          - name: ACTUAL_COST_TO_DATE
+            description: "Total costs incurred on the project to date in USD."
+          - name: START_DATE
+            description: "Date construction commenced."
+          - name: EXPECTED_END_DATE
+            description: "Contractual completion deadline."
+          - name: ACTUAL_END_DATE
+            description: "Actual date project was completed (NULL if still active)."
           - name: STATUS
-            description: "Current vendor status — ACTIVE or INACTIVE."
-          - name: ANNUAL_SPEND
-            description: "Total annual spend with this vendor in USD."
-          - name: TAX_ID
-            description: "Vendor tax identification number (excluded from marts)."
-          - name: PREFERRED_CURRENCY
-            description: "Vendor preferred payment currency (ISO 4217 code)."
+            description: "Current project status — ACTIVE or COMPLETED."
+          - name: COMPLETION_PCT
+            description: "Actual percentage of work completed to date."
+          - name: EXPECTED_COMPLETION_PCT
+            description: "Planned completion percentage based on schedule."
+          - name: RISK_LEVEL
+            description: "Project risk classification — LOW, MEDIUM, or HIGH."
+          - name: PAYMENT_TERMS
+            description: "Agreed payment terms — NET30 or NET45."
+          - name: RETAINAGE_PCT
+            description: "Percentage of each payment withheld as retainage."
+          - name: PERMIT_NUMBER
+            description: "Building permit number issued by the municipality."
           - name: CREATED_DATE
-            description: "Date the vendor was onboarded to the system."
+            description: "Date the project record was created in the system."
 
-      - name: vendor_invoices
-        description: "Accounts payable invoice records from the AP system. One row per invoice."
+      - name: job_costs
+        description: "Job costing records — subcontractor invoices and cost entries by project. One row per cost entry."
         columns:
-          - name: INVOICE_ID
-            description: "Unique invoice ID from the AP system (primary key)."
-          - name: VENDOR_ID
-            description: "Foreign key to VENDOR_MASTER."
-          - name: INVOICE_DATE
-            description: "Date the invoice was issued by the vendor."
+          - name: COST_ID
+            description: "Unique cost entry ID from the job costing system (primary key)."
+          - name: PROJECT_ID
+            description: "Foreign key to PROJECTS."
+          - name: COST_DATE
+            description: "Date the cost was incurred or invoice was issued."
           - name: DUE_DATE
-            description: "Date by which payment must be made."
+            description: "Date by which payment must be made to the subcontractor."
+          - name: VENDOR_NAME
+            description: "Name of the subcontractor or supplier issuing the invoice."
+          - name: COST_TYPE
+            description: "Type of cost — SUBCONTRACT, MATERIAL, EQUIPMENT, LABOR, or OVERHEAD."
+          - name: CATEGORY
+            description: "Detailed cost category (Electrical, Plumbing, Concrete, etc.)."
+          - name: DESCRIPTION
+            description: "Free-text description of the work or materials."
           - name: INVOICE_AMOUNT
             description: "Total invoice value in USD."
           - name: PAID_AMOUNT
             description: "Amount already paid against this invoice in USD."
           - name: STATUS
-            description: "Current invoice status — PAID, PENDING, or OVERDUE."
-          - name: BUSINESS_UNIT
-            description: "Business unit responsible for this invoice (BU_WEST, BU_EAST, BU_CENTRAL)."
-          - name: CATEGORY
-            description: "Spend category — IT, Facilities, Logistics, Construction, etc."
-          - name: COST_CENTER
-            description: "Financial cost center code for this invoice."
+            description: "Current payment status — PAID, PENDING, or OVERDUE."
           - name: APPROVER
-            description: "Internal employee responsible for approving payment."
+            description: "Project manager responsible for approving payment."
           - name: PAYMENT_METHOD
             description: "Method of payment — ACH, WIRE, or CHECK."
-          - name: PO_NUMBER
-            description: "Associated purchase order reference number."
+          - name: COST_CODE
+            description: "CSI or internal cost code for this work item."
           - name: NOTES
-            description: "Additional notes or comments on the invoice."
+            description: "Additional notes or budget tracking flags."
 
       - name: dbt_model_config
         description: "Config metadata table populated by scripts/load_config_to_snowflake.py from config/model_config.yml."

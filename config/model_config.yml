@@ -1,5 +1,5 @@
 version: "1.0"
-last_updated: "2026-05-22"
+last_updated: "2026-05-23"
 author: "Santhosh Aluvala"
 description: >
   Single source of truth for all dbt model configurations.
@@ -10,18 +10,18 @@ description: >
 models:
 
   - source_schema: RAW
-    source_table: VENDOR_MASTER
+    source_table: PROJECTS
     target_schema: STAGING
-    target_model: STG_VENDOR_MASTER
+    target_model: STG_PROJECTS
     materialization: view
-    unique_key: VENDOR_ID
+    unique_key: PROJECT_ID
     load_type: FULL
     is_active: true
     columns:
-      - name: VENDOR_ID
+      - name: PROJECT_ID
         data_type: VARCHAR
-        business_name: Vendor Identifier
-        description: Unique vendor ID from procurement system
+        business_name: Project Identifier
+        description: Unique project ID from the project management system
         is_pk: true
         is_nullable: false
         include_in_mart: true
@@ -29,10 +29,10 @@ models:
           not_null: true
           unique: true
           accepted_values: []
-      - name: VENDOR_NAME
+      - name: PROJECT_NAME
         data_type: VARCHAR
-        business_name: Vendor Name
-        description: Legal vendor name as registered
+        business_name: Project Name
+        description: Descriptive name of the construction project
         is_pk: false
         is_nullable: false
         include_in_mart: true
@@ -40,10 +40,10 @@ models:
           not_null: true
           unique: false
           accepted_values: []
-      - name: VENDOR_TYPE
+      - name: CLIENT_NAME
         data_type: VARCHAR
-        business_name: Vendor Type
-        description: Category of vendor services provided
+        business_name: Client Name
+        description: Name of the client or owner of the project
         is_pk: false
         is_nullable: true
         include_in_mart: true
@@ -51,10 +51,10 @@ models:
           not_null: false
           unique: false
           accepted_values: []
-      - name: COUNTRY
+      - name: PROJECT_TYPE
         data_type: VARCHAR
-        business_name: Country
-        description: Country where vendor is registered
+        business_name: Project Type
+        description: Category of construction project
         is_pk: false
         is_nullable: true
         include_in_mart: true
@@ -62,21 +62,32 @@ models:
           not_null: false
           unique: false
           accepted_values: []
-      - name: PAYMENT_TERMS
+      - name: LOCATION
         data_type: VARCHAR
-        business_name: Payment Terms
-        description: Agreed payment terms eg NET30 NET45
+        business_name: Project Location
+        description: City and state where the project is located
         is_pk: false
-        is_nullable: false
+        is_nullable: true
         include_in_mart: true
         tests:
-          not_null: true
+          not_null: false
           unique: false
-          accepted_values: ["NET15","NET30","NET45","NET60"]
-      - name: CREDIT_LIMIT
+          accepted_values: []
+      - name: PROJECT_MANAGER
+        data_type: VARCHAR
+        business_name: Project Manager
+        description: Apex Build Co employee managing this project
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: CONTRACT_VALUE
         data_type: NUMBER
-        business_name: Credit Limit USD
-        description: Maximum credit extended to vendor in USD
+        business_name: Contract Value USD
+        description: Total value of the signed contract in USD
         is_pk: false
         is_nullable: true
         include_in_mart: true
@@ -84,10 +95,32 @@ models:
           not_null: false
           unique: false
           accepted_values: []
-      - name: CONTRACT_START
+      - name: BUDGET
+        data_type: NUMBER
+        business_name: Approved Budget USD
+        description: Approved internal budget for the project in USD
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: ACTUAL_COST_TO_DATE
+        data_type: NUMBER
+        business_name: Actual Cost to Date USD
+        description: Total costs incurred on the project to date in USD
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: START_DATE
         data_type: DATE
-        business_name: Contract Start Date
-        description: Date vendor contract became effective
+        business_name: Project Start Date
+        description: Date construction commenced
         is_pk: false
         is_nullable: true
         include_in_mart: true
@@ -95,10 +128,10 @@ models:
           not_null: false
           unique: false
           accepted_values: []
-      - name: CONTRACT_END
+      - name: EXPECTED_END_DATE
         data_type: DATE
-        business_name: Contract End Date
-        description: Date vendor contract expires
+        business_name: Expected End Date
+        description: Contractual completion deadline
         is_pk: false
         is_nullable: true
         include_in_mart: true
@@ -106,21 +139,10 @@ models:
           not_null: false
           unique: false
           accepted_values: []
-      - name: RISK_RATING
-        data_type: VARCHAR
-        business_name: Risk Rating
-        description: Vendor risk classification LOW MEDIUM HIGH
-        is_pk: false
-        is_nullable: false
-        include_in_mart: true
-        tests:
-          not_null: true
-          unique: false
-          accepted_values: ["LOW","MEDIUM","HIGH"]
-      - name: ACCOUNT_MANAGER
-        data_type: VARCHAR
-        business_name: Account Manager
-        description: CBRE employee managing this vendor relationship
+      - name: ACTUAL_END_DATE
+        data_type: DATE
+        business_name: Actual End Date
+        description: Actual date project was completed (NULL if still active)
         is_pk: false
         is_nullable: true
         include_in_mart: true
@@ -130,19 +152,19 @@ models:
           accepted_values: []
       - name: STATUS
         data_type: VARCHAR
-        business_name: Vendor Status
-        description: Current vendor status ACTIVE or INACTIVE
+        business_name: Project Status
+        description: Current project status ACTIVE or COMPLETED
         is_pk: false
         is_nullable: false
         include_in_mart: true
         tests:
           not_null: true
           unique: false
-          accepted_values: ["ACTIVE","INACTIVE"]
-      - name: ANNUAL_SPEND
+          accepted_values: ["ACTIVE","COMPLETED"]
+      - name: COMPLETION_PCT
         data_type: NUMBER
-        business_name: Annual Spend USD
-        description: Total annual spend with this vendor in USD
+        business_name: Completion Percentage
+        description: Actual percentage of work completed to date
         is_pk: false
         is_nullable: true
         include_in_mart: true
@@ -150,10 +172,43 @@ models:
           not_null: false
           unique: false
           accepted_values: []
-      - name: TAX_ID
+      - name: EXPECTED_COMPLETION_PCT
+        data_type: NUMBER
+        business_name: Expected Completion Percentage
+        description: Planned completion percentage based on schedule
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: RISK_LEVEL
         data_type: VARCHAR
-        business_name: Tax ID
-        description: Vendor tax identification number
+        business_name: Risk Level
+        description: Project risk classification LOW MEDIUM HIGH
+        is_pk: false
+        is_nullable: false
+        include_in_mart: true
+        tests:
+          not_null: true
+          unique: false
+          accepted_values: ["LOW","MEDIUM","HIGH"]
+      - name: PAYMENT_TERMS
+        data_type: VARCHAR
+        business_name: Payment Terms
+        description: Agreed payment terms eg NET30 NET45
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: ["NET30","NET45"]
+      - name: RETAINAGE_PCT
+        data_type: NUMBER
+        business_name: Retainage Percentage
+        description: Percentage of each payment held as retainage until project completion
         is_pk: false
         is_nullable: true
         include_in_mart: false
@@ -161,13 +216,13 @@ models:
           not_null: false
           unique: false
           accepted_values: []
-      - name: PREFERRED_CURRENCY
+      - name: PERMIT_NUMBER
         data_type: VARCHAR
-        business_name: Preferred Currency
-        description: Vendor preferred payment currency
+        business_name: Permit Number
+        description: Building permit number issued by the municipality
         is_pk: false
         is_nullable: true
-        include_in_mart: true
+        include_in_mart: false
         tests:
           not_null: false
           unique: false
@@ -175,7 +230,7 @@ models:
       - name: CREATED_DATE
         data_type: DATE
         business_name: Created Date
-        description: Date vendor was onboarded to the system
+        description: Date the project record was created in the system
         is_pk: false
         is_nullable: true
         include_in_mart: false
@@ -185,18 +240,18 @@ models:
           accepted_values: []
 
   - source_schema: RAW
-    source_table: VENDOR_INVOICES
+    source_table: JOB_COSTS
     target_schema: STAGING
-    target_model: STG_VENDOR_INVOICES
+    target_model: STG_JOB_COSTS
     materialization: view
-    unique_key: INVOICE_ID
+    unique_key: COST_ID
     load_type: FULL
     is_active: true
     columns:
-      - name: INVOICE_ID
+      - name: COST_ID
         data_type: VARCHAR
-        business_name: Invoice Identifier
-        description: Unique invoice ID from AP system
+        business_name: Cost Entry Identifier
+        description: Unique cost entry ID from the job costing system
         is_pk: true
         is_nullable: false
         include_in_mart: true
@@ -204,10 +259,10 @@ models:
           not_null: true
           unique: true
           accepted_values: []
-      - name: VENDOR_ID
+      - name: PROJECT_ID
         data_type: VARCHAR
-        business_name: Vendor Identifier
-        description: Foreign key to vendor master
+        business_name: Project Identifier
+        description: Foreign key to the PROJECTS table
         is_pk: false
         is_nullable: false
         include_in_mart: true
@@ -215,10 +270,10 @@ models:
           not_null: true
           unique: false
           accepted_values: []
-      - name: INVOICE_DATE
+      - name: COST_DATE
         data_type: DATE
-        business_name: Invoice Date
-        description: Date invoice was issued by vendor
+        business_name: Cost Date
+        description: Date the cost was incurred or invoice was issued
         is_pk: false
         is_nullable: false
         include_in_mart: true
@@ -229,12 +284,56 @@ models:
       - name: DUE_DATE
         data_type: DATE
         business_name: Payment Due Date
-        description: Date by which payment must be made
+        description: Date by which payment must be made to the subcontractor
         is_pk: false
         is_nullable: false
         include_in_mart: true
         tests:
           not_null: true
+          unique: false
+          accepted_values: []
+      - name: VENDOR_NAME
+        data_type: VARCHAR
+        business_name: Vendor / Subcontractor Name
+        description: Name of the subcontractor or supplier issuing the invoice
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: COST_TYPE
+        data_type: VARCHAR
+        business_name: Cost Type
+        description: Type of cost SUBCONTRACT MATERIAL EQUIPMENT LABOR OVERHEAD
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: ["SUBCONTRACT","MATERIAL","EQUIPMENT","LABOR","OVERHEAD"]
+      - name: CATEGORY
+        data_type: VARCHAR
+        business_name: Cost Category
+        description: Detailed category eg Electrical Plumbing Concrete etc
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
+          unique: false
+          accepted_values: []
+      - name: DESCRIPTION
+        data_type: VARCHAR
+        business_name: Description
+        description: Free-text description of the work or materials
+        is_pk: false
+        is_nullable: true
+        include_in_mart: true
+        tests:
+          not_null: false
           unique: false
           accepted_values: []
       - name: INVOICE_AMOUNT
@@ -261,8 +360,8 @@ models:
           accepted_values: []
       - name: STATUS
         data_type: VARCHAR
-        business_name: Invoice Status
-        description: Current invoice status PAID PENDING OVERDUE
+        business_name: Payment Status
+        description: Current payment status PAID PENDING OVERDUE
         is_pk: false
         is_nullable: false
         include_in_mart: true
@@ -270,43 +369,10 @@ models:
           not_null: true
           unique: false
           accepted_values: ["PAID","PENDING","OVERDUE"]
-      - name: BUSINESS_UNIT
-        data_type: VARCHAR
-        business_name: Business Unit
-        description: CBRE business unit responsible for this invoice
-        is_pk: false
-        is_nullable: true
-        include_in_mart: true
-        tests:
-          not_null: false
-          unique: false
-          accepted_values: ["BU_WEST","BU_EAST","BU_CENTRAL"]
-      - name: CATEGORY
-        data_type: VARCHAR
-        business_name: Spend Category
-        description: Spend category IT Facilities Logistics etc
-        is_pk: false
-        is_nullable: true
-        include_in_mart: true
-        tests:
-          not_null: false
-          unique: false
-          accepted_values: []
-      - name: COST_CENTER
-        data_type: VARCHAR
-        business_name: Cost Center
-        description: Financial cost center code for this invoice
-        is_pk: false
-        is_nullable: true
-        include_in_mart: true
-        tests:
-          not_null: false
-          unique: false
-          accepted_values: []
       - name: APPROVER
         data_type: VARCHAR
-        business_name: Invoice Approver
-        description: CBRE employee responsible for approving payment
+        business_name: Payment Approver
+        description: Project manager responsible for approving payment
         is_pk: false
         is_nullable: true
         include_in_mart: true
@@ -325,21 +391,21 @@ models:
           not_null: false
           unique: false
           accepted_values: ["ACH","WIRE","CHECK"]
-      - name: PO_NUMBER
+      - name: COST_CODE
         data_type: VARCHAR
-        business_name: Purchase Order Number
-        description: Associated purchase order reference
+        business_name: Cost Code
+        description: CSI or internal cost code for this work item
         is_pk: false
         is_nullable: true
-        include_in_mart: false
+        include_in_mart: true
         tests:
           not_null: false
           unique: false
           accepted_values: []
       - name: NOTES
         data_type: VARCHAR
-        business_name: Invoice Notes
-        description: Additional notes or comments on invoice
+        business_name: Notes
+        description: Additional notes eg budget tracking flags
         is_pk: false
         is_nullable: true
         include_in_mart: false
