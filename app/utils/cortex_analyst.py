@@ -42,6 +42,15 @@ Key columns in MART_JOB_COSTS:
   COST_CODE, DAYS_OVERDUE, LIEN_RISK,
   PAYMENT_PRIORITY (HIGH/MEDIUM/LOW), APPROVER_ACTION_REQUIRED
 
+Key columns in RAW.PAYROLL (QuickBooks weekly payroll export):
+  PAY_ID, PROJECT_ID, EMPLOYEE_NAME, EMPLOYEE_ROLE, TRADE,
+  WEEK_ENDING_DATE, REGULAR_HOURS, OVERTIME_HOURS,
+  REGULAR_RATE, OVERTIME_RATE, REGULAR_PAY, OVERTIME_PAY, TOTAL_PAY,
+  COST_CODE, QUICKBOOKS_ID, STATUS (PROCESSED/PENDING), NOTES
+  - Join to MART_PROJECT_360 on PROJECT_ID for budget context
+  - Use DATE_TRUNC('month', WEEK_ENDING_DATE) to filter by month
+  - Labor cost % of budget = (SUM(TOTAL_PAY) / BUDGET) * 100
+
 RESPONSE RULES:
 - Always call execute_sql first to get real data before answering.
 - Lead with the most critical risk finding.
