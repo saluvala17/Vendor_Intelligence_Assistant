@@ -100,18 +100,66 @@ st.markdown("""
   .rate-limit-sub   { font-size: 0.78rem; color: #B45309; }
   .rate-limit-code  { font-family: monospace; background: #FEF3C7; border-radius: 4px; padding: 2px 8px; font-size: 0.76rem; }
 
+  .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+  }
+
   [data-testid="stButton"] > button {
       font-size: 0.72rem !important; padding: 4px 10px !important;
       border-radius: 16px !important; background: white !important;
       border: 1px solid #E5E7EB !important; color: #374151 !important;
       font-weight: 400 !important; box-shadow: none !important;
       height: auto !important; line-height: 1.4 !important;
+      width: 100% !important;
   }
   [data-testid="stButton"] > button:hover {
       border-color: #E8720C !important; color: #E8720C !important; background: #FFF7ED !important;
   }
   [data-testid="stChatMessage"]     { border-radius: 10px; font-size: 0.85rem; }
   [data-testid="stChatInputTextArea"] { font-size: 0.85rem !important; }
+
+  /* ── Mobile responsive ──────────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+      .block-container {
+          padding-left: 1rem !important;
+          padding-right: 1rem !important;
+          padding-top: 0.75rem !important;
+      }
+      /* Header: hide company pill, shrink text */
+      .ciq-company { display: none !important; }
+      .ciq-name { font-size: 0.95rem !important; }
+      .ciq-sub  { font-size: 0.62rem !important; }
+      .ciq-header { margin-bottom: 12px; }
+
+      /* KPI grid: 2 columns on mobile */
+      .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .kpi-val, .kpi-val-red, .kpi-val-ora { font-size: 1.3rem !important; }
+
+      /* Stack all Streamlit column blocks vertically */
+      [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
+      [data-testid="stColumn"] {
+          flex: 0 0 100% !important;
+          width: 100% !important;
+          min-width: 100% !important;
+      }
+
+      /* Bigger touch targets for buttons */
+      [data-testid="stButton"] > button {
+          font-size: 0.8rem !important;
+          padding: 10px 12px !important;
+          border-radius: 8px !important;
+          margin-bottom: 4px;
+      }
+
+      /* Chat input: larger on mobile */
+      [data-testid="stChatInputTextArea"] { font-size: 1rem !important; }
+
+      /* Git clone URL: wrap on small screens */
+      .rate-limit-code { word-break: break-all; font-size: 0.68rem; }
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -364,48 +412,35 @@ st.markdown(f"""
 # ── KPI cards ─────────────────────────────────────────────────────────────────
 st.markdown('<div class="section-title">Project Overview</div>', unsafe_allow_html=True)
 
-k1, k2, k3, k4, k5 = st.columns(5)
+_v   = kpis['total_outstanding']
+_fmt = f"${_v/1_000_000:.1f}M" if _v >= 1_000_000 else f"${_v:,.0f}"
 
-with k1:
-    st.markdown(f"""
-    <div class="kpi-wrap">
-      <div class="kpi-val">{kpis['total_projects']}</div>
-      <div class="kpi-lbl">Active Projects</div>
-    </div>""", unsafe_allow_html=True)
-
-with k2:
-    st.markdown(f"""
-    <div class="kpi-wrap">
-      <div class="kpi-val-red">{kpis['critical_count']}</div>
-      <div class="kpi-lbl">Critical Risk</div>
-      <div class="kpi-badge-red">Needs attention</div>
-    </div>""", unsafe_allow_html=True)
-
-with k3:
-    st.markdown(f"""
-    <div class="kpi-wrap">
-      <div class="kpi-val-ora">{kpis['over_budget_count']}</div>
-      <div class="kpi-lbl">Over Budget</div>
-      <div class="kpi-badge-ora">Budget breach</div>
-    </div>""", unsafe_allow_html=True)
-
-with k4:
-    v = kpis['total_outstanding']
-    fmt = f"${v/1_000_000:.1f}M" if v >= 1_000_000 else f"${v:,.0f}"
-    st.markdown(f"""
-    <div class="kpi-wrap">
-      <div class="kpi-val">{fmt}</div>
-      <div class="kpi-lbl">Outstanding Costs</div>
-    </div>""", unsafe_allow_html=True)
-
-with k5:
-    st.markdown(f"""
-    <div class="kpi-wrap">
-      <div class="kpi-val-ora">{kpis['pending_approvals']}</div>
-      <div class="kpi-lbl">Pending Approvals</div>
-    </div>""", unsafe_allow_html=True)
-
-st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+st.markdown(f"""
+<div class="kpi-grid">
+  <div class="kpi-wrap">
+    <div class="kpi-val">{kpis['total_projects']}</div>
+    <div class="kpi-lbl">Active Projects</div>
+  </div>
+  <div class="kpi-wrap">
+    <div class="kpi-val-red">{kpis['critical_count']}</div>
+    <div class="kpi-lbl">Critical Risk</div>
+    <div class="kpi-badge-red">Needs attention</div>
+  </div>
+  <div class="kpi-wrap">
+    <div class="kpi-val-ora">{kpis['over_budget_count']}</div>
+    <div class="kpi-lbl">Over Budget</div>
+    <div class="kpi-badge-ora">Budget breach</div>
+  </div>
+  <div class="kpi-wrap">
+    <div class="kpi-val">{_fmt}</div>
+    <div class="kpi-lbl">Outstanding Costs</div>
+  </div>
+  <div class="kpi-wrap">
+    <div class="kpi-val-ora">{kpis['pending_approvals']}</div>
+    <div class="kpi-lbl">Pending Approvals</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ── Charts ────────────────────────────────────────────────────────────────────
 ch1, ch2, ch3 = st.columns([5, 3, 4])
@@ -508,11 +543,12 @@ if st.session_state.pending_q:
 
 # ── Sample questions ──────────────────────────────────────────────────────────
 st.markdown('<div class="sq-label">Suggested questions</div>', unsafe_allow_html=True)
-sq_cols = st.columns(len(SAMPLE_QUESTIONS))
+sq_cols = st.columns(3)
 for i, q in enumerate(SAMPLE_QUESTIONS):
-    if sq_cols[i].button(q, key=f"sq_{i}", disabled=limit_hit):
-        st.session_state.pending_q = q
-        st.rerun()
+    with sq_cols[i % 3]:
+        if st.button(q, key=f"sq_{i}", disabled=limit_hit):
+            st.session_state.pending_q = q
+            st.rerun()
 
 # ── Rate limit banner ─────────────────────────────────────────────────────────
 remaining = MAX_QUESTIONS - st.session_state.question_count
