@@ -126,7 +126,11 @@ def ask_vendor_analyst(
         response = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=2048,
-            system=SYSTEM_PROMPT,
+            system=[{
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }],
             tools=TOOLS,
             messages=messages,
         )
