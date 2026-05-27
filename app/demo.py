@@ -328,12 +328,16 @@ def ask_demo_analyst(question: str, projects_df: pd.DataFrame, job_costs_df: pd.
         return
 
     client = anthropic.Anthropic(api_key=api_key)
-    system = _build_system_prompt(projects_df, job_costs_df)
+    system_text = _build_system_prompt(projects_df, job_costs_df)
 
     with client.messages.stream(
         model="claude-sonnet-4-6",
         max_tokens=1024,
-        system=system,
+        system=[{
+            "type": "text",
+            "text": system_text,
+            "cache_control": {"type": "ephemeral"},
+        }],
         messages=[{"role": "user", "content": question}],
     ) as stream:
         for text in stream.text_stream:
